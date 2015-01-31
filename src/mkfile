@@ -1,0 +1,30 @@
+</$objtype/mkfile
+
+BIN=/$objtype/bin
+TARG=\
+	peg\
+	leg\
+
+</sys/src/cmd/mkmany
+
+CFLAGS=-FTV
+
+$O.peg:	peg.$O tree.$O compile.$O
+	$LD -o $target $prereq
+
+$O.leg:	leg.$O tree.$O compile.$O
+	$LD -o $target $prereq
+
+newpeg:V: $O.peg
+	./$O.peg -o peg.peg-c < peg.peg
+
+newleg:V: $O.leg
+	./$O.leg -o leg.c < leg.leg
+
+uninstall:V:
+	for(i in $TARG)
+		mk $MKFLAGS $i.uninstall
+
+%.uninstall:V:
+	test -e $BIN/$stem && rm -f $BIN/$stem
+

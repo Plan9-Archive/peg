@@ -16,15 +16,12 @@
  * Last edited: 2012-05-16 08:55:38 by piumarta on emilia
  */
 
+#include <u.h>
+#include <libc.h>
+#include <stdio.h>
+
 #include "tree.h"
 #include "version.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <libgen.h>
-#include <assert.h>
 
 FILE *input= 0;
 
@@ -69,7 +66,7 @@ void yyerror(char *message)
       fputc('\"', stderr);
     }
   fprintf(stderr, "\n");
-  exit(1);
+  exits("yyerror");
 }
 
 static void version(char *name)
@@ -88,10 +85,11 @@ static void usage(char *name)
   fprintf(stderr, "  -V          print version number and exit\n");
   fprintf(stderr, "if no <file> is given, input is read from stdin\n");
   fprintf(stderr, "if no <ofile> is given, output is written to stdout\n");
-  exit(1);
+  exits("usage");
 }
 
-int main(int argc, char **argv)
+void
+main(int argc, char **argv)
 {
   Node *n;
   int   c;
@@ -101,37 +99,20 @@ int main(int argc, char **argv)
   lineNumber= 1;
   fileName= "<stdin>";
 
-  while (-1 != (c= getopt(argc, argv, "Vho:v")))
-    {
-      switch (c)
-	{
-	case 'V':
-	  version(basename(argv[0]));
-	  exit(0);
-
-	case 'h':
-	  usage(basename(argv[0]));
-	  break;
-
-	case 'o':
-	  if (!(output= fopen(optarg, "w")))
-	    {
-	      perror(optarg);
-	      exit(1);
-	    }
-	  break;
-
-	case 'v':
-	  verboseFlag= 1;
-	  break;
-
-	default:
-	  fprintf(stderr, "for usage try: %s -h\n", argv[0]);
-	  exit(1);
-	}
-    }
-  argc -= optind;
-  argv += optind;
+  ARGBEGIN{
+    case 'V':
+      version(argv[0]);
+      exits("version");
+    case 'h':
+      usage(argv[0]);
+    case 'o':
+      if(!(output = fopen(EARGF(usage(argv[0])), "w")))
+		sysfatal("fopen: %r");
+      break;
+   case 'v':
+      verboseFlag = 1;
+      break;
+  }ARGEND
 
   if (argc)
     {
@@ -145,10 +126,7 @@ int main(int argc, char **argv)
 	  else
 	    {
 	      if (!(input= fopen(*argv, "r")))
-		{
-		  perror(*argv);
-		  exit(1);
-		}
+	        sysfatal("fopen: %r");
 	      fileName= *argv;
 	    }
 	  lineNumber= 1;
@@ -169,5 +147,5 @@ int main(int argc, char **argv)
   Rule_compile_c_header();
   if (rules) Rule_compile_c(rules);
 
-  return 0;
+  exits(nil);
 }

@@ -16,8 +16,6 @@
  * Last edited: 2012-05-15 22:37:53 by piumarta on emilia
  */
 
-#include <stdio.h>
-
 enum { Unknown= 0, Rule, Variable, Name, Dot, Character, String, Class, Action, Predicate, Error, Alternate, Sequence, PeekFor, PeekNot, Query, Star, Plus };
 
 enum {

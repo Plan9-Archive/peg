@@ -16,10 +16,9 @@
  * Last edited: 2013-07-20 12:47:35 by piumarta on margaux1
  */
 
+#include <u.h>
+#include <libc.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
 
 #ifdef WIN32
 # undef inline
@@ -344,8 +343,7 @@ static void Node_fprint(FILE *stream, Node *node)
     case Star:		Node_fprint(stream, node->query.element);  fprintf(stream, "*");	break;
     case Plus:		Node_fprint(stream, node->query.element);  fprintf(stream, "+");	break;
     default:
-      fprintf(stream, "\nunknown node type %d\n", node->type);
-      exit(1);
+      sysfatal("unknown node type %d", node->type);
     }
 }
 

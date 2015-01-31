@@ -16,10 +16,9 @@
  * Last edited: 2013-12-18 10:09:42 by piumarta on linux32
  */
 
+#include <u.h>
+#include <libc.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <assert.h>
 
 #ifdef WIN32
 # undef inline
@@ -132,8 +131,8 @@ static char *makeCharClass(unsigned char *cclass)
   return string;
 }
 
-static void begin(void)		{ fprintf(output, "\n  {"); }
-static void end(void)		{ fprintf(output, "\n  }"); }
+static void bbegin(void)		{ fprintf(output, "\n  {"); }
+static void bend(void)		{ fprintf(output, "\n  }"); }
 static void label(int n)	{ fprintf(output, "\n  l%d:;\t", n); }
 static void jump(int n)		{ fprintf(output, "  goto l%d;", n); }
 static void save(int n)		{ fprintf(output, "  int yypos%d= yy->__pos, yythunkpos%d= yy->__thunkpos;", n, n); }
@@ -145,10 +144,7 @@ static void Node_compile_c_ko(Node *node, int ko)
   switch (node->type)
     {
     case Rule:
-      fprintf(stderr, "\ninternal error #1 (%s)\n", node->rule.name);
-      exit(1);
-      break;
-
+      sysfatal("internal error #1 (%s)", node->rule.name);
     case Dot:
       fprintf(output, "  if (!yymatchDot(yy)) goto l%d;", ko);
       break;
@@ -217,7 +213,7 @@ static void Node_compile_c_ko(Node *node, int ko)
     case Alternate:
       {
 	int ok= yyl();
-	begin();
+	bbegin();
 	save(ok);
 	for (node= node->alternate.first;  node;  node= node->alternate.next)
 	  if (node->alternate.next)
@@ -230,7 +226,7 @@ static void Node_compile_c_ko(Node *node, int ko)
 	    }
 	  else
 	    Node_compile_c_ko(node, ko);
-	end();
+	bend();
 	label(ok);
       }
       break;
@@ -243,37 +239,37 @@ static void Node_compile_c_ko(Node *node, int ko)
     case PeekFor:
       {
 	int ok= yyl();
-	begin();
+	bbegin();
 	save(ok);
 	Node_compile_c_ko(node->peekFor.element, ko);
 	restore(ok);
-	end();
+	bend();
       }
       break;
 
     case PeekNot:
       {
 	int ok= yyl();
-	begin();
+	bbegin();
 	save(ok);
 	Node_compile_c_ko(node->peekFor.element, ok);
 	jump(ko);
 	label(ok);
 	restore(ok);
-	end();
+	bend();
       }
       break;
 
     case Query:
       {
 	int qko= yyl(), qok= yyl();
-	begin();
+	bbegin();
 	save(qko);
 	Node_compile_c_ko(node->query.element, qko);
 	jump(qok);
 	label(qko);
 	restore(qko);
-	end();
+	bend();
 	label(qok);
       }
       break;
@@ -282,13 +278,13 @@ static void Node_compile_c_ko(Node *node, int ko)
       {
 	int again= yyl(), out= yyl();
 	label(again);
-	begin();
+	bbegin();
 	save(out);
 	Node_compile_c_ko(node->star.element, out);
 	jump(again);
 	label(out);
 	restore(out);
-	end();
+	bend();
       }
       break;
 
@@ -297,19 +293,18 @@ static void Node_compile_c_ko(Node *node, int ko)
 	int again= yyl(), out= yyl();
 	Node_compile_c_ko(node->plus.element, ko);
 	label(again);
-	begin();
+	bbegin();
 	save(out);
 	Node_compile_c_ko(node->plus.element, out);
 	jump(again);
 	label(out);
 	restore(out);
-	end();
+	bend();
       }
       break;
 
     default:
-      fprintf(stderr, "\nNode_compile_c_ko: illegal node type %d\n", node->type);
-      exit(1);
+      sysfatal("Node_compile_c_ko: illegal node type %d", node->type);
     }
 }
 
@@ -341,6 +336,7 @@ static void defineVariables(Node *node)
 
 static void undefineVariables(Node *node)
 {
+  fprintf(output, "#undef __\n");
   fprintf(output, "#undef yythunkpos\n");
   fprintf(output, "#undef yypos\n");
   fprintf(output, "#undef yy\n");
@@ -393,9 +389,6 @@ static void Rule_compile_c2(Node *node)
 }
 
 static char *header= "\
-#include <stdio.h>\n\
-#include <stdlib.h>\n\
-#include <string.h>\n\
 ";
 
 static char *preamble= "\
@@ -494,7 +487,7 @@ struct _yycontext {\n\
 #endif\n\
 #else\n\
 #define YY_CTX_PARAM_\n\
-#define YY_CTX_PARAM\n\
+#define YY_CTX_PARAM	void\n\
 #define YY_CTX_ARG_\n\
 #define YY_CTX_ARG\n\
 yycontext _yyctx= { 0, 0 };\n\
@@ -783,8 +776,7 @@ int consumesInput(Node *node)
     case Plus:		return consumesInput(node->plus.element);
 
     default:
-      fprintf(stderr, "\nconsumesInput: illegal node type %d\n", node->type);
-      exit(1);
+      sysfatal("consumesInput: illegal node type %d", node->type);
     }
   return 0;
 }
